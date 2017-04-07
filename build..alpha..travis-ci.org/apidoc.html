@@ -1,0 +1,260 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/domenic/restify-oauth2#readme"
+
+    >restify-oauth2 (v4.0.4)</a>
+</h1>
+<h4>A simple OAuth 2 endpoint for Restify</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.restify-oauth2">module restify-oauth2</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.restify-oauth2.cc">
+            function <span class="apidocSignatureSpan">restify-oauth2.</span>cc
+            <span class="apidocSignatureSpan">(server, options)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.restify-oauth2.ropc">
+            function <span class="apidocSignatureSpan">restify-oauth2.</span>ropc
+            <span class="apidocSignatureSpan">(server, options)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.restify-oauth2" id="apidoc.module.restify-oauth2">module restify-oauth2</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.restify-oauth2.cc" id="apidoc.element.restify-oauth2.cc">
+        function <span class="apidocSignatureSpan">restify-oauth2.</span>cc
+        <span class="apidocSignatureSpan">(server, options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function restifyOAuth2Setup(server, options) {
+    if (typeof options.hooks !== &#x22;object&#x22; || options.hooks === null) {
+        throw new Error(&#x22;Must supply hooks.&#x22;);
+    }
+    requiredHooks.forEach(function (hookName) {
+        if (typeof options.hooks[hookName] !== &#x22;function&#x22;) {
+            throw new Error(&#x22;Must supply &#x22; + hookName + &#x22; hook.&#x22;);
+        }
+    });
+
+    if (typeof options.hooks.grantScopes !== &#x22;function&#x22;) {
+        // By default, grant no scopes.
+        options.hooks.grantScopes = function (credentials, scopesRequested, req, cb) {
+            cb(null, []);
+        };
+    }
+
+    options = _.defaults(options, {
+        tokenEndpoint: &#x22;/token&#x22;,
+        wwwAuthenticateRealm: &#x22;Who goes there?&#x22;,
+        tokenExpirationTime: Infinity
+    });
+
+    // Allow `tokenExpirationTime: Infinity` (like above), but translate it into `undefined` so that
+    // `JSON.stringify` omits it entirely when we write out the response as
+    // `JSON.stringify({ expires_in: tokenExpirationTime, ... })`.
+    if (options.tokenExpirationTime === Infinity) {
+        options.tokenExpirationTime = undefined;
+    }
+
+    server.post(options.tokenEndpoint, function (req, res, next) {
+        grantToken(req, res, next, options);
+    });
+
+    server.use(function ccOAuth2Plugin(req, res, next) {
+        res.sendUnauthenticated = function (message) {
+            errorSenders.authenticationRequired(res, res.send.bind(res), options, message);
+        };
+
+        res.sendUnauthorized = function (message) {
+            errorSenders.insufficientAuthorization(res, res.send.bind(res), options, message);
+        };
+
+        if (req.method === &#x22;POST&#x22; &#x26;&#x26; req.path() === options.tokenEndpoint) {
+            // This is handled by the route installed above, so do nothing.
+            next();
+        } else if (req.authorization.scheme) {
+            handleAuthenticatedResource(req, res, next, options);
+        } else {
+            // Otherwise Restify will set it by default, which gives false positives for application code.
+            req.username = null;
+            next();
+        }
+    });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+var restify = require(&#x22;restify&#x22;);
+var restifyOAuth2 = require(&#x22;restify-oauth2&#x22;);
+
+var server = restify.createServer({ name: &#x22;My cool server&#x22;, version: &#x22;1.0.0&#x22; });
+server.use(restify.authorizationParser());
+server.use(restify.bodyParser({ mapParams: false }));
+
+restifyOAuth2.<span class="apidocCodeKeywordSpan">cc</span>(server, options);
+// or
+restifyOAuth2.ropc(server, options);
+```
+
+Unfortunately, Restify–OAuth2 can&#x27;t be a simple Restify plugin. It needs to install a route for the token
+endpoint, whereas plugins simply run on every request and don&#x27;t modify the server&#x27;s routing table.
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.restify-oauth2.ropc" id="apidoc.element.restify-oauth2.ropc">
+        function <span class="apidocSignatureSpan">restify-oauth2.</span>ropc
+        <span class="apidocSignatureSpan">(server, options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function restifyOAuth2Setup(server, options) {
+    if (typeof options.hooks !== &#x22;object&#x22; || options.hooks === null) {
+        throw new Error(&#x22;Must supply hooks.&#x22;);
+    }
+    requiredHooks.forEach(function (hookName) {
+        if (typeof options.hooks[hookName] !== &#x22;function&#x22;) {
+            throw new Error(&#x22;Must supply &#x22; + hookName + &#x22; hook.&#x22;);
+        }
+    });
+
+    if (typeof options.hooks.grantScopes !== &#x22;function&#x22;) {
+        // By default, grant no scopes.
+        options.hooks.grantScopes = function (credentials, scopesRequested, req, cb) {
+            cb(null, []);
+        };
+    }
+
+    options = _.defaults(options, {
+        tokenEndpoint: &#x22;/token&#x22;,
+        wwwAuthenticateRealm: &#x22;Who goes there?&#x22;,
+        tokenExpirationTime: Infinity
+    });
+
+    // Allow `tokenExpirationTime: Infinity` (like above), but translate it into `undefined` so that
+    // `JSON.stringify` omits it entirely when we write out the response as
+    // `JSON.stringify({ expires_in: tokenExpirationTime, ... })`.
+    if (options.tokenExpirationTime === Infinity) {
+        options.tokenExpirationTime = undefined;
+    }
+
+    server.post(options.tokenEndpoint, function (req, res, next) {
+        grantToken(req, res, next, options);
+    });
+
+    server.use(function ccOAuth2Plugin(req, res, next) {
+        res.sendUnauthenticated = function (message) {
+            errorSenders.authenticationRequired(res, res.send.bind(res), options, message);
+        };
+
+        res.sendUnauthorized = function (message) {
+            errorSenders.insufficientAuthorization(res, res.send.bind(res), options, message);
+        };
+
+        if (req.method === &#x22;POST&#x22; &#x26;&#x26; req.path() === options.tokenEndpoint) {
+            // This is handled by the route installed above, so do nothing.
+            next();
+        } else if (req.authorization.scheme) {
+            handleAuthenticatedResource(req, res, next, options);
+        } else {
+            // Otherwise Restify will set it by default, which gives false positives for application code.
+            req.username = null;
+            next();
+        }
+    });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+var server = restify.createServer({ name: &#x22;My cool server&#x22;, version: &#x22;1.0.0&#x22; });
+server.use(restify.authorizationParser());
+server.use(restify.bodyParser({ mapParams: false }));
+
+restifyOAuth2.cc(server, options);
+// or
+restifyOAuth2.<span class="apidocCodeKeywordSpan">ropc</span>(server, options);
+```
+
+Unfortunately, Restify–OAuth2 can&#x27;t be a simple Restify plugin. It needs to install a route for the token
+endpoint, whereas plugins simply run on every request and don&#x27;t modify the server&#x27;s routing table.
+
+## Options
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
